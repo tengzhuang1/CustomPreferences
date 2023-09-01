@@ -1,0 +1,47 @@
+﻿<AML>
+  <Item type="Method" action="add" id="20656EB5CFAB48C2BDDFC213A205E822">
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[
+
+debugger;
+let toolbars = window.document.getElementById("top-toolbars");
+
+let value = window.document.getElementsByClassName("aras-titlebar")[0].style.display;
+let btns = control.querySelectorAll("button");
+let btn;
+btns.forEach(x => {
+    let dataId = x.getAttribute("data-id");
+    if("hl_itemview_commandbar_fold" === dataId){
+        btn = x;
+    }
+})
+// let btn = event.target.parentElement;
+// if(btn.tagName !== "BUTTON"){
+//     return;
+// }
+if(!btn){
+    return;
+}
+if ('none' === value) {
+    
+    btn.innerHTML = '<img class="aras-button__icon" src="../Images/arrow-blue-t.svg"><span class="aras-button__text">折叠</span>';
+    window.document.getElementsByClassName("aras-titlebar")[0].style.display = "block";
+    window.document.querySelector("body").style.padding = "12px 12px 0 0";
+    aras.getMainWindow().fold = 1;
+} else {
+    btn.innerHTML = '<img class="aras-button__icon" src="../Images/arrow-blue-b.svg"><span class="aras-button__text">展开</span>';
+    window.document.getElementsByClassName("aras-titlebar")[0].style.display = "none";
+    window.document.querySelector("body").style.padding = "0";
+    aras.getMainWindow().fold = 0;
+}
+
+aras.getMainWindow().focus();
+]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_itemview_flod</name>
+  </Item>
+</AML>

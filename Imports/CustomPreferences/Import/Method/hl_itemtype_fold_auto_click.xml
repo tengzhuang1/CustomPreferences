@@ -1,0 +1,20 @@
+﻿<AML>
+  <Item type="Method" action="add" id="D52F23FFEAFD4055AEF7C02CC6D1AAA7">
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[//********************************************************
+//新增日期:2022.11.22
+//作者:liuyang
+//应用对象:CommandBarMenuCheckbox:hl_cui_default.mwh_itemtype_auto_fold
+//触发时机:Click Method
+//內容说明:更新首选项设定,勾选打开对象时自动折叠按钮
+//********************************************************
+const currChkStr = target.checked?'1':'0';
+aras.setPreferenceItemProperties('Core_GlobalLayout', null, {'hl_itemtype_fold_auto': currChkStr});]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_itemtype_fold_auto_click</name>
+  </Item>
+</AML>

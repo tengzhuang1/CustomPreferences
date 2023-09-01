@@ -1,0 +1,10 @@
+﻿<AML>
+  <Item type="CommandBarMenuCheckbox" id="69E478CF6C4E4F2CA0EEF9253307987E" action="add">
+    <include_events>UpdatePreferences</include_events>
+    <label xml:lang="zc">切换页面时自动刷新</label>
+    <on_click_handler type="Method"><Item type="Method" action="get" id="90D14641A31C4AA390493936B92FA693" /></on_click_handler>
+    <on_init_handler type="Method"><Item type="Method" action="get" id="9687427B6EAB4C4C82368FA54A8853CD" /></on_init_handler>
+    <parent_menu type="CommandBarMenu">236F95C7344D42EE854716E7E7151996</parent_menu>
+    <name>hl_cui_default.mwh_auto_refresh</name>
+  </Item>
+</AML>

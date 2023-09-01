@@ -1,0 +1,599 @@
+﻿<AML>
+  <Item type="SearchMode" id="BD84BCA3EC064D77BF3772A9D93308B6" action="edit">
+    <is_active>0</is_active>
+    <label xml:lang="zc">简单搜索</label>
+    <search_handler>
+const typesWithRangeSupport = [
+	'float',
+	'decimal',
+	'integer',
+	'ubigint',
+	'global_version',
+	'date'
+];
+
+function Simple(searchContainer, aras) {
+	this.supportXClassSearch = true;
+	// Call base SearchMode constructor
+	SearchMode.prototype.constructor.call(this, searchContainer, aras);
+	this.userID = this.aras.getUserID();
+	this.loggedUserKeyedName = this.aras.user.userInfo.keyedName;
+	this.complexity = 1;
+
+	this._searchByWildcardIsEnabled = function() {
+		return (this.aras.getPreferenceItemProperty('Core_GlobalLayout', null, 'core_use_wildcards') == 'true');
+	};
+
+	this._applyWildcard = function(itemNd, useWildcards) {
+		var itemTypeName = itemNd.getAttribute('type');
+		var isItemNode = itemNd.nodeName == 'Item';
+		var childNodes = itemNd.childNodes;
+		var currentNode;
+		var i;
+
+		if (itemTypeName &amp;&amp; isItemNode) {
+			var globalCondition = (useWildcards ? 'like' : 'eq');
+			var wildcardConditions = /like|eq/;
+			var itemTypeDef;
+			var currentCondition;
+
+			//"null" is string here. Note, that it's possible case, see steps in IR-028333
+			if (itemTypeName !== 'null') {
+				itemTypeDef = this.aras.getItemTypeForClient(itemTypeName).node;
+			}
+
+			for (i = 0; i &lt; childNodes.length; i++) {
+				currentNode = childNodes[i];
+				// get attribute when currentNode is ELEMENT_NODE
+				if (currentNode.nodeType === 1) {
+					currentCondition = currentNode.getAttribute('condition');
+				}
+
+				if (wildcardConditions.test(currentCondition)) {
+					if (itemTypeName === 'null') {
+						currentNode.setAttribute('condition', globalCondition);
+						continue;
+					}
+
+					var propDef = itemTypeDef.selectSingleNode('Relationships/Item[@type="Property"][name="' + currentNode.nodeName + '"]');
+					if (currentNode.nodeName.indexOf('xp-') === 0) {
+						propXPath = 'Relationships/Item[@type=\'xItemTypeAllowedProperty\' and not(inactive=\'1\')]' +
+							'/related_id/Item[@type=\'xPropertyDefinition\' and name=\'' + currentNode.nodeName + '\']';
+						propDef = itemTypeDef.selectSingleNode(propXPath);
+					}
+
+					if (propDef) {
+						var conditionChangeAllowed = true;
+						var childNodeValue = currentNode.text;
+						var realPropertyDef = this.aras.getRealPropertyForForeignProperty(propDef);
+						var propName = this.aras.getItemProperty(propDef, 'name');
+						var propDT = this.aras.getItemProperty(realPropertyDef, 'data_type');
+						var localCondition = globalCondition;
+
+						switch (propDT) {
+							case 'item':
+								if (propName == 'locked_by_id') {
+									conditionChangeAllowed = false;
+								}
+								break;
+						}
+
+						if (conditionChangeAllowed) {
+							if (!this._containsWildcardCharacter(childNodeValue) || 'list' == propDT || 'filter list' == propDT || 'color list' == propDT || 'boolean' == propDT) {
+								localCondition = 'eq';
+							}
+
+							currentNode.setAttribute('condition', localCondition);
+						}
+					}
+				}
+			}
+		}
+
+		for (i = 0; i &lt; childNodes.length; i++) {
+			currentNode = childNodes[i];
+
+			if (currentNode.childNodes.length) {
+				this._applyWildcard(currentNode, useWildcards);
+			}
+		}
+	};
+}
+
+Simple.prototype = Object.create(SearchMode.prototype);
+Simple.prototype.constructor = Simple;
+
+Simple.prototype.clearSearchCriteria = function Simple_clearSearchCriteria() {
+	if (!this.onSearchDialogUpdatesQueryExplicitly) {
+		this.currQryItem.removeAllCriterias();
+	}
+
+	this.currQryItem.removeItemAttribute('where');
+	this.currQryItem.removeItemAttribute('order_by');
+
+	if (this.grid &amp;&amp; this.grid.inputRow.get('visible')) {
+		for (var i = 0, j = this.grid.columns_Experimental.get('count'); i &lt; j; i++) {
+			if (this.grid.inputRow.get(i, 'disabled') === false) {
+				var propNd = this.searchContainer.getPropertyDefinitionByColumnIndex(i);
+				var nds2Remove = this.currQryItem.item.selectNodes(propNd.selectSingleNode('name').text);
+
+				for (var k = 0; k &lt; nds2Remove.length; k++) {
+					nds2Remove[k].parentNode.removeChild(nds2Remove[k]);
+				}
+				this.grid.inputRow.set(i, 'value', '');
+			}
+		}
+	}
+
+	if (this.userMethodColumnCfgs) {
+		var useWildcards = this._searchByWildcardIsEnabled();
+		for (var propName in this.userMethodColumnCfgs) {
+			if (this.userMethodColumnCfgs[propName] &amp;&amp; this.userMethodColumnCfgs[propName].isFilterFixed) {
+				var criteria = this.userMethodColumnCfgs[propName].filterValue;
+				const condition = useWildcards &amp;&amp; this._containsWildcardCharacter(criteria) ? 'like' : 'eq';
+				const propNd = currItemType.selectSingleNode('Relationships/Item[@type="Property" and data_type="item" and name="' + propName + '"]');
+				if (propNd) {
+					const propDS = aras.getItemPropertyAttribute(propNd, 'data_source', 'name');
+					this.currQryItem.setPropertyCriteria(propName, 'keyed_name', criteria, condition, propDS);
+				} else {
+					this.currQryItem.setCriteria(propName, criteria, condition);
+				}
+			}
+		}
+	}
+};
+
+Simple.prototype.setSearchCriteria = function SimpleSearchMode_setSearchCriteria(propDef, propXpath, criteria, condition) {
+	if (criteria) {
+		let propDT = this.aras.getItemProperty(propDef, 'data_type');
+		//Modify by tz 2022/4/24 模糊查询
+		//if (!this._containsWildcardCharacter(criteria) || 'list' == propDT || 'filter list' == propDT || 'color list' == propDT || 'boolean' == propDT) {
+		//	condition = 'eq';
+		//}
+		if('foreign'==propDT){
+			const foreignPropId=this.aras.getItemProperty(propDef,"foreign_property");
+			const foreignProp=this.aras.getItemById("Property","72F73B25EED14C0B833D012E86A6EDE4",0,undefined,'data_type');
+			propDT=this.aras.getItemProperty(foreignProp,'data_type')
+		}
+		if ('list' == propDT || 'filter list' == propDT || 'color list' == propDT || 'boolean' == propDT || 'date' == propDT) {
+			condition = 'eq';
+		}
+		else if (aras.getPreferenceItemProperty('Core_GlobalLayout',null,'hl_core_use_default_wildcards')=='1'){
+			if (criteria[0] != "*") criteria = '*' + criteria;
+			if (criteria[criteria.length-1] != "*") criteria += '*';
+		}
+		//End Modify
+
+		const propName = this.aras.getItemProperty(propDef, 'name');
+		let nodeName = propName;
+		const realPropertyDef = this.aras.getRealPropertyForForeignProperty(propDef);
+		const numberToString = ArasModules.intl.number.toString;
+		const parseFloat = ArasModules.intl.number.parseFloat;
+		const topWnd = this.aras.getMostTopWindowWithAras();
+
+		propDT = this.aras.getItemProperty(realPropertyDef, 'data_type');
+
+		switch (propDT) {
+			case 'item':
+				if (propName == 'locked_by_id') {
+					var lockedFileName = /\w*\.svg/.exec(criteria);
+					if (lockedFileName) {
+						switch (lockedFileName[0]) {
+							case 'ClaimOn.svg':
+								criteria = this.loggedUserKeyedName;
+								condition = 'eq';
+								break;
+							case 'ClaimOther.svg':
+								criteria = this.loggedUserKeyedName;
+								condition = 'ne';
+								break;
+							case 'ClaimAnyone.svg':
+								criteria = '%';
+								condition = 'like';
+								break;
+						}
+					}
+				}
+				const typeName = realPropertyDef.selectSingleNode('data_source').getAttribute('name');
+				nodeName = propName === 'current_state' ? 'current_state' : 'keyed_name';
+				const searchPropertyName = propName === 'current_state' ? '/label' : '/keyed_name';
+				propXpath += '/Item' + (typeName === null ? '' : '[@type=\'' + typeName + '\']') + searchPropertyName;
+				break;
+		}
+
+		const criteriaAML = topWnd.ArasCore.searchConverter.criteriaToAml(criteria, nodeName, {type: propDT, condition});
+		if (!criteriaAML) {
+			return false;
+		}
+
+		this.applySearchCriteria(propXpath, criteriaAML);
+	} else {
+		this.currQryItem.removeSearchCriteria(propXpath, {
+			extendXPath: !this.onSearchDialogUpdatesQueryExplicitly
+		});
+	}
+	return true;
+};
+
+Simple.prototype.applySearchCriteria = function SimpleSearchMode_setSearchCriteria(propXpath, criteria) {
+	if (!criteria) {
+		return;
+	}
+
+	this.currQryItem.removeSearchCriteria(propXpath, {
+		extendXPath: !this.onSearchDialogUpdatesQueryExplicitly
+	});
+
+	var domToAml = this.aras.createXMLDocument();
+	domToAml.loadXML(criteria);
+
+	var pathParts = propXpath.split('/');
+	var parentPath = pathParts.splice(0, pathParts.length - 1).join('/');
+
+	// add new criteria to currQryItem
+	var targetNode = this.currQryItem.dom.selectSingleNode(parentPath);
+	if (targetNode) {
+		if (domToAml.documentElement) {
+			targetNode.appendChild(domToAml.documentElement);
+		}
+	} else {
+		var critNd = this._createItemByXPath(parentPath);
+		critNd.appendChild(domToAml.documentElement);
+	}
+};
+
+Simple.prototype.onStartSearchMode = function SimpleSearchMode_onStartSearchMode(sContainer) {
+	// Call base onStartSearchMode method.
+	SearchMode.prototype.onStartSearchMode.call(this, sContainer);
+
+	if (this.grid) {
+		this.grid.ShowInputRow(true);
+	}
+};
+
+Simple.prototype.onEndSearchMode = function SimpleSearchMode_onStartSearchMode(sContainer) {
+	// Call base onEndSearchMode method.
+	SearchMode.prototype.onEndSearchMode.call(this);
+
+	if (this.grid) {
+		this.grid.ShowInputRow(false);
+	}
+};
+
+Simple.prototype.generateValidationInfo = function SimpleSearchMode_generateValidationInfo() {
+	if (!this.grid) {
+		return null;
+	}
+
+	var validationInfo = {};
+	for (var i = 0, j = this.grid.GetColumnCount(); i &lt; j; i++) {
+		validationInfo[this.searchContainer.getPropertyXPathByColumnIndex(i)] = this.searchContainer.getPropertyDefinitionByColumnIndex(i);
+	}
+
+	return validationInfo;
+};
+
+Simple.prototype.setAml = async function SimpleSearchMode_setAml(searchAML) {
+	// Call base initSearch method.
+	let xClassCriteria;
+	await SearchMode.prototype.setAml.call(this, searchAML);
+	if (this.grid &amp;&amp; this.grid.IsInputRowVisible()) {
+		var qryDom = this.currQryItem.dom.cloneNode(true);
+
+		if (!this.onSearchDialogUpdatesQueryExplicitly) {
+			//clear currQryItem
+			this.currQryItem.removeAllCriterias();
+			this.currQryItem.removeItemAttribute('where');
+			this.currQryItem.removeItemAttribute('order_by');
+		}
+
+		let propList;
+		const amlToSimple = this.aras.getMainWindow().searchAmlToJson.searchAmlToSimple;
+		try {
+			let searchCriteria = searchAML;
+			if (this.supportXClassSearch) {
+				xClassCriteria = qryDom.documentElement.selectSingleNode(this.xClassSearchCriteriaXPath);
+				if (xClassCriteria) {
+					xClassCriteria = qryDom.documentElement.removeChild(xClassCriteria);
+					searchCriteria = qryDom.documentElement.xml;
+				}
+			}
+			let relatedItemPropList;
+			let rootItemPropList;
+
+			const parsedSearchAml = ArasModules.xml.parseString(searchCriteria);
+			const relatedItems = parsedSearchAml.selectNodes(
+				'/Item/related_id/Item'
+			);
+			const rootItem = parsedSearchAml.selectSingleNode('/Item');
+
+			if (this.searchContainer.searchLocation === 'Relationships Grid' &amp;&amp; relatedItems.length &gt; 0) {
+				for (const relatedItem of relatedItems) {
+					rootItem.removeChild(relatedItem.parentNode);
+				}
+				const formattedNode = mergeNodes(relatedItems);
+				relatedItemPropList = await amlToSimple(ArasModules.xml.getXml(formattedNode));
+			}
+			rootItemPropList = await amlToSimple(ArasModules.xml.getXml(rootItem));
+			propList = {};
+			propList[rootItemPropList['@rootType']] = rootItemPropList;
+			if (relatedItemPropList) {
+				propList[relatedItemPropList['@rootType']] = relatedItemPropList;
+			}
+		}
+		catch (err) {
+			propList = undefined;
+		}
+
+		const columnsToShow = { order: [], widths: new Map() };
+
+		for (var i = 0, j = this.grid.GetColumnCount(); i &lt; j; i++) {
+			var propXpath = this.searchContainer.getPropertyXPathByColumnIndex(i);
+			var realPropertyXpath = propXpath;
+			var propDef = this.searchContainer.getPropertyDefinitionByColumnIndex(i);
+			var propName = this.aras.getItemProperty(propDef, 'name');
+			const propertySourceName = this.aras.getItemPropertyAttribute(propDef, 'source_id', 'name');
+			if (!this.grid.IsColumnVisible(i)) {
+				if (propList[propertySourceName] &amp;&amp; propList[propertySourceName][propName]) {
+					var colName = this.grid.GetColumnName(i);
+					const colWidth = this.grid._grid.head.get(colName, 'width');
+					columnsToShow.order.push(colName);
+					columnsToShow.widths.set(colName, colWidth);
+				} else {
+					continue;
+				}
+			}
+			var realPropertyDef = this.aras.getRealPropertyForForeignProperty(propDef);
+
+			var propDT = this.aras.getItemProperty(realPropertyDef, 'data_type');
+			if (propDT == 'item') {
+				var propertyDataSource = this.aras.getItemPropertyAttribute(realPropertyDef, 'data_source', 'name');
+				var typeCriterion = propertyDataSource || '';
+
+				if (!propertyDataSource) {
+					this.grid.cells('input_row', i).setEditable(false);
+				}
+
+				const defaultXPath = '/Item' + (typeCriterion === '' ? '' : ('[@type=\'' + typeCriterion + '\']'));
+				if (propName === 'current_state') {
+					realPropertyXpath += defaultXPath + '/label';
+				} else {
+					realPropertyXpath += defaultXPath + '/keyed_name';
+				}
+			}
+
+			let valueToSet = '';
+			let propValue = {};
+			if (propList &amp;&amp; propList[propertySourceName] &amp;&amp; propList[propertySourceName][propName]) {
+				propValue = propList[propertySourceName][propName];
+				if (typeof propValue === 'object') {
+					valueToSet = propValue.value;
+				} else {
+					valueToSet = propValue;
+				}
+			}
+
+			if (!valueToSet) {
+				valueToSet = '';
+			}
+
+			let condition;
+			switch (propDT) {
+				case 'item':
+					if (propName == 'locked_by_id' &amp;&amp; this.grid.GetColumnName(i) == 'L') { //L - lock column
+						condition = propValue.condition || 'eq';
+						var imageStyle = 'margin-right: 4px; height: auto; width: auto; max-width: 20px; max-height: 20px;';
+
+						if (condition == 'eq' || condition == 'like') {
+							if (!valueToSet) {
+								valueToSet = '';
+							} else if (valueToSet == '%') {
+								valueToSet = '&lt;img src="../images/ClaimAnyone.svg" style="' + imageStyle + '" /&gt;';
+							} else if (valueToSet == this.loggedUserKeyedName) {
+								valueToSet = '&lt;img src="../images/ClaimOn.svg" style="' + imageStyle + '" /&gt;';
+							} else {
+								valueToSet = '&lt;img src="../images/ClaimOther.svg" style="' + imageStyle + '" /&gt;';
+							}
+						} else if (condition == '≠') {
+							if (valueToSet) {
+								valueToSet = '&lt;img src="../images/ClaimOther.svg" style="' + imageStyle + '" /&gt;';
+								condition = 'eq';
+							}
+						}
+					} else {
+						const valueHasWildCard = this._containsWildcardCharacter(valueToSet);
+						condition = (valueHasWildCard ? 'like' : 'eq');
+					}
+					break;
+				case 'date':
+					if (valueToSet) {
+						const topWnd = this.aras.getMostTopWindowWithAras();
+						valueToSet = topWnd.ArasCore.searchConverter.convertDatesFromNeutral(valueToSet);
+					}
+					break;
+				default:
+					var useWildcards = this._searchByWildcardIsEnabled();
+					if (typeof propValue === 'object') {
+						condition = propValue.condition;
+					} else {
+						condition = (useWildcards ? 'like' : 'eq');
+					}
+			}
+
+			this.grid.inputRow.set(i, 'value', valueToSet);
+			if (!this.onSearchDialogUpdatesQueryExplicitly) {
+				this.setSearchCriteria(propDef, propXpath, valueToSet, condition);
+			}
+		}
+
+		const { order, widths } = columnsToShow;
+		if (order.length !== 0) {
+			layout.actions.updateLayoutData({grid: {order: [...layout.state.grid.order, ...order], widths}});
+		}
+	}
+	if (xClassCriteria) {
+		this.currQryItem.item.appendChild(this.currQryItem.dom.importNode(xClassCriteria, true));
+	}
+};
+
+Simple.prototype.getAml = function SimpleSearchMode_getAml() {
+	if (SearchMode.prototype.getAml.call(this) == undefined) {
+		return undefined;
+	}
+	let xClassCriteria;
+	if (this.supportXClassSearch) {
+		xClassCriteria = this.currQryItem.item.selectSingleNode(this.xClassSearchCriteriaXPath);
+		if (xClassCriteria) {
+			xClassCriteria = this.currQryItem.item.removeChild(xClassCriteria);
+		}
+	}
+
+	this._applyWildcard(this.currQryItem.dom.documentElement, this._searchByWildcardIsEnabled());
+
+	if (xClassCriteria) {
+		this.currQryItem.item.appendChild(xClassCriteria);
+	}
+	return this.currQryItem.item.xml;
+};
+
+Simple.prototype.testAmlForCompatibility = async function(searchAml) {
+	let searchQuery = searchAml;
+	if (this.supportXClassSearch) {
+		const queryDom = this.aras.createXMLDocument();
+		queryDom.loadXML(searchAml);
+		const xClassCriteria = queryDom.documentElement.selectSingleNode(this.xClassSearchCriteriaXPath);
+		if (xClassCriteria) {
+			queryDom.documentElement.removeChild(xClassCriteria);
+			searchQuery = queryDom.documentElement.xml;
+		}
+	}
+	const converter = window.searchAmlToJson;
+	const parsedSearchAml = ArasModules.xml.parseString(searchQuery);
+	const relatedItems = parsedSearchAml.selectNodes(
+		'/Item/related_id/Item'
+	);
+	const rootItem = parsedSearchAml.selectSingleNode('/Item');
+	let relatedItemJson;
+	if (this.searchContainer.searchLocation === 'Relationships Grid' &amp;&amp; relatedItems.length &gt; 0) {
+		for (const relatedItem of relatedItems) {
+			rootItem.removeChild(relatedItem.parentNode);
+		}
+		const formattedNode = mergeNodes(relatedItems);
+
+		if (!formattedNode) {
+			this.isValidAML = false;
+			return this.isValidAML;
+		}
+		relatedItemJson = await converter.searchAmlToSimple(
+			ArasModules.xml.getXml(formattedNode)
+		);
+		if (relatedItemJson['@invalid']) {
+			this.isValidAML = false;
+			return this.isValidAML;
+		}
+	}
+
+	const baseJson = await converter.searchAmlToSimple(
+		ArasModules.xml.getXml(rootItem)
+	);
+
+	if (baseJson['@invalid']) {
+		this.isValidAML = false;
+		return this.isValidAML;
+	}
+
+	function getProps(itemTypeData) {
+		if (!itemTypeData) {
+			return null;
+		}
+
+		const baseProps = itemTypeData.Property;
+		const xProps = itemTypeData.xItemTypeAllowedProperty;
+		const props = baseProps || [];
+
+		if (xProps) {
+			xProps.forEach(prop =&gt; {
+				props.push(prop.related_id);
+			});
+		}
+
+		return props;
+	}
+
+	const rootPromise = this.aras.MetadataCacheJson.GetItemType(
+		baseJson['@rootType'],
+		'name'
+	);
+	const relatedPromise = relatedItemJson ?
+	this.aras.MetadataCacheJson.GetItemType(
+		relatedItemJson['@rootType'],
+		'name'
+	) : Promise.resolve();
+
+	const [rootProps, relatedProps] = await Promise.all([
+		rootPromise,
+		relatedPromise
+	]);
+
+	const rootItemTypeProps = getProps(rootProps);
+	const relatedItemTypeProps = getProps(relatedProps);
+
+	function checkProps(propsObj, itemTypeProps, isHiddenType) {
+		return Object.keys(propsObj).some(function(prop) {
+			if (prop.includes('@') || prop === 'locked_by_id') {
+				return false;
+			}
+			const propDef = itemTypeProps.find((ITprop) =&gt; ITprop.name === prop);
+			return (!propDef || propDef[isHiddenType] === '1');
+		});
+	}
+
+	const location = this.searchContainer.searchLocation;
+	const hiddenPropertyToCheck =
+		location === 'Relationships Grid' ? 'is_hidden2' : 'is_hidden';
+	const isHiddenRootPropsExist = checkProps(
+		baseJson,
+		rootItemTypeProps,
+		hiddenPropertyToCheck
+	);
+	let isHiddenRelatedPropsExist = false;
+	if (relatedItemTypeProps) {
+		isHiddenRelatedPropsExist = checkProps(
+			relatedItemJson,
+			relatedItemTypeProps,
+			hiddenPropertyToCheck
+		);
+	}
+
+	this.isValidAML = !(isHiddenRootPropsExist || isHiddenRelatedPropsExist);
+	return this.isValidAML;
+};
+
+Simple.prototype._containsWildcardCharacter = function(criteria) {
+	return /[%*]/.test(criteria);
+};
+
+function mergeNodes(relatedItems) {
+	const items = [...relatedItems];
+	const assembledNode = items.shift().cloneNode(true);
+	const itemType = assembledNode.getAttribute('type');
+
+	for (const relatedItem of items) {
+		if (
+			relatedItem.hasAttribute('where') ||
+			itemType !== relatedItem.getAttribute('type')
+		) {
+			return null;
+		}
+		const properties = relatedItem.children;
+		[...properties].forEach((property) =&gt; {
+			assembledNode.appendChild(property.cloneNode(true));
+		});
+	}
+	return assembledNode;
+};
+</search_handler>
+    <search_mode_order>128</search_mode_order>
+    <name>Simple</name>
+  </Item>
+</AML>

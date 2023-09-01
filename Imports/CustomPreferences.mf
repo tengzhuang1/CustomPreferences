@@ -1,0 +1,3 @@
+﻿<imports>
+  <package name="CustomPreferences" path="CustomPreferences\Import" />
+</imports>

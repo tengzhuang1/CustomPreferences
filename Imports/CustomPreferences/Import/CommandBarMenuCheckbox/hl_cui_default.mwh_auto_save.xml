@@ -1,0 +1,10 @@
+﻿<AML>
+  <Item type="CommandBarMenuCheckbox" id="6565FCF871F14935B9ABE0FBD234C7EC" action="add">
+    <include_events>UpdatePreferences</include_events>
+    <label xml:lang="zc">切换页签自动保存</label>
+    <on_click_handler type="Method"><Item type="Method" action="get" id="132EC027D8A148519E9A3AE39674303E" /></on_click_handler>
+    <on_init_handler type="Method"><Item type="Method" action="get" id="B9613C9DE8E240309341667828D80572" /></on_init_handler>
+    <parent_menu type="CommandBarMenu">236F95C7344D42EE854716E7E7151996</parent_menu>
+    <name>hl_cui_default.mwh_auto_save</name>
+  </Item>
+</AML>

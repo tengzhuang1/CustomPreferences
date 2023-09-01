@@ -1,0 +1,22 @@
+﻿<AML>
+  <Item type="Method" action="add" id="36D3D79F2A5B490BAF57171A3A8D329E">
+    <comments>HL  :  默认使用模糊查询按钮加载事件</comments>
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[//********************************************************
+//新增日期:2022.04.24
+//作者:tz
+//应用对象:CommandBarMenuCheckbox:hl_cui_default.mwh_default_use_wildcards
+//触发时机:Init Method
+//內容说明:读取首选项设定,勾选默认使用模糊查询
+//********************************************************
+const isChecked = aras.getPreferenceItemProperty('Core_GlobalLayout', null, 'hl_core_use_default_wildcards') === '1';
+return {checked: isChecked};
+]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_cui_reinit_mwh_default_use_w</name>
+  </Item>
+</AML>

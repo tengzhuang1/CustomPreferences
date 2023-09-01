@@ -1,0 +1,21 @@
+﻿<AML>
+  <Item type="Method" action="add" id="1E3ED45645574F23A22891DD19B7F972">
+    <comments>HL  :  默认使用模糊查询按钮点击事件</comments>
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[//********************************************************
+//新增日期:2022.04.24
+//作者:tz
+//应用对象:CommandBarMenuCheckbox:hl_cui_default.mwh_default_use_wildcards
+//触发时机:Click Method
+//內容说明:更新首选项设定,勾选默认使用模糊查询
+//********************************************************
+const currChkStr = target.checked?'1':'0';
+aras.setPreferenceItemProperties('Core_GlobalLayout', null, {'hl_core_use_default_wildcards': currChkStr});]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_cui_default_mwh_default_use_w</name>
+  </Item>
+</AML>

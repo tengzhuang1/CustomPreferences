@@ -1,0 +1,10 @@
+﻿<AML>
+  <Item type="CommandBarMenuCheckbox" id="5A08A1EE693544B69A863324B63CAAC6" action="add">
+    <include_events>UpdatePreferences</include_events>
+    <label xml:lang="zc">默认模糊查询</label>
+    <on_click_handler type="Method"><Item type="Method" action="get" id="1E3ED45645574F23A22891DD19B7F972" /></on_click_handler>
+    <on_init_handler type="Method"><Item type="Method" action="get" id="36D3D79F2A5B490BAF57171A3A8D329E" /></on_init_handler>
+    <parent_menu type="CommandBarMenu">236F95C7344D42EE854716E7E7151996</parent_menu>
+    <name>hl_cui_default.mwh_default_use_wildcards</name>
+  </Item>
+</AML>

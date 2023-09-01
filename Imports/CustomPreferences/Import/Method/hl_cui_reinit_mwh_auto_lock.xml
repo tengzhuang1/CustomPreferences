@@ -1,0 +1,22 @@
+﻿<AML>
+  <Item type="Method" action="add" id="2A8DA1DF59F14E268B78CFB525CC5A65">
+    <comments>HL  :  打开对象时自动锁定按钮加载事件</comments>
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[//********************************************************
+//新增日期:2022.04.26
+//作者:tz
+//应用对象:CommandBarMenuCheckbox:hl_cui_default.mwh_auto_lock
+//触发时机:Init Method
+//內容说明:读取首选项设定,勾选打开对象时自动锁定
+//********************************************************
+const isChecked = aras.getPreferenceItemProperty('Core_GlobalLayout', null, 'hl_core_auto_lock') === '1';
+return {checked: isChecked};
+]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_cui_reinit_mwh_auto_lock</name>
+  </Item>
+</AML>

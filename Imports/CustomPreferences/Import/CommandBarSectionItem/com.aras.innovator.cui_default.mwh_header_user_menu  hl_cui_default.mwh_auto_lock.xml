@@ -1,0 +1,13 @@
+﻿<AML>
+  <Item type="CommandBarSectionItem" id="F99E4FFEA9A44D669566F71D6334ADD2" action="add">
+    <action>Add</action>
+    <related_id type="CommandBarMenuCheckbox">13790668A3874552937151AA81910FBD</related_id>
+    <role type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </role>
+    <sort_order>277</sort_order>
+    <source_id type="CommandBarSection">FF92FAF56F874486B57138823D5B7B61</source_id>
+  </Item>
+</AML>

@@ -1,0 +1,10 @@
+﻿<AML>
+  <Item type="CommandBarMenuCheckbox" id="13790668A3874552937151AA81910FBD" action="add">
+    <include_events>UpdatePreferences</include_events>
+    <label xml:lang="zc">自动开启编辑模式</label>
+    <on_click_handler type="Method"><Item type="Method" action="get" id="642FD7FC9AEF41278467CC3382388B62" /></on_click_handler>
+    <on_init_handler type="Method"><Item type="Method" action="get" id="2A8DA1DF59F14E268B78CFB525CC5A65" /></on_init_handler>
+    <parent_menu type="CommandBarMenu">236F95C7344D42EE854716E7E7151996</parent_menu>
+    <name>hl_cui_default.mwh_auto_lock</name>
+  </Item>
+</AML>

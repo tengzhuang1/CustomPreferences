@@ -1,0 +1,10 @@
+﻿<AML>
+  <Item type="CommandBarMenuCheckbox" id="074686A6B7C54D03B152CA9292065B70" action="add">
+    <include_events>UpdatePreferences</include_events>
+    <label xml:lang="zc">详情页面标题折叠</label>
+    <on_click_handler type="Method"><Item type="Method" action="get" id="D52F23FFEAFD4055AEF7C02CC6D1AAA7" /></on_click_handler>
+    <on_init_handler type="Method"><Item type="Method" action="get" id="4FFFA47BA0E14055A4BEB9C4D5FFD507" /></on_init_handler>
+    <parent_menu type="CommandBarMenu">236F95C7344D42EE854716E7E7151996</parent_menu>
+    <name>hl_cui_default.mwh_itemtype_auto_fold</name>
+  </Item>
+</AML>

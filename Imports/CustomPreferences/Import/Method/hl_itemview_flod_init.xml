@@ -1,0 +1,28 @@
+﻿<AML>
+  <Item type="Method" action="add" id="B586EB79B6474AB0A9BD22AC176CAE10">
+    <execution_allowed_to type="Identity">
+      <Item type="Identity" action="get" select="id">
+        <name>World</name>
+      </Item>
+    </execution_allowed_to>
+    <method_code><![CDATA[//********************************************************
+//新增日期:2022.11.22
+//作者:liuyang
+//应用对象:
+//触发时机:init Method
+//內容说明:通过用户设置的全局变量（对象详情页面折叠标题）判断是否折叠标题
+//********************************************************
+
+let fold = aras.getPreferenceItemProperty('Core_GlobalLayout', null, 'hl_itemtype_fold_auto');
+if(fold === "1"){
+    window.document.getElementsByClassName("aras-titlebar")[0].style.display = "none";
+    window.document.querySelector("body").style.padding = "0";
+    return { hidden: false,label: "展开",image: '../Images/arrow-blue-b.svg' };
+}
+
+return { hidden: false,label: "折叠",image: '../Images/arrow-blue-t.svg' };
+]]></method_code>
+    <method_type>JavaScript</method_type>
+    <name>hl_itemview_flod_init</name>
+  </Item>
+</AML>

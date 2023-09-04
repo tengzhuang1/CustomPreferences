@@ -31,13 +31,15 @@ Aras Innovator Version 22  Build: 14.0.8.35675
 2. 打开 Aras Package Import 工具
 3. 输入Aras Innovator系统地址并点击 **Login**
 4. 在弹出的登录页面中输入登录信息
-4. 在 **TargetRelease** 控件中输入**包**的名称(可随意填写,建议填写 `CustomPreferences`)
+    + 用户名: `root`
+    + 密码: `innovator`
+5. 在 **TargetRelease** 控件中输入**包**的名称(可随意填写,建议填写 `CustomPreferences`)
     * 可选: 在 **Description** 控件中填写描述信息
-5. 在 **Path** 控件中输入本地安装包路径 `..\CustomPreferences\Imports\CustomPreferences.mf` 
-6. 在 **Available for Import** 控件中勾选 `CustomPreferences`
-7. 选择 Type = **Merge** , Mode = **Thorough Mode**
-8. 点击顶部左侧 **Import**
-9. 等待导入成功后关闭 Aras Package Import 工具
+6. 在 **Path** 控件中输入本地安装包路径 `..\CustomPreferences\Imports\CustomPreferences.mf` 
+76. 在 **Available for Import** 控件中勾选 `CustomPreferences`
+8. 选择 Type = **Merge** , Mode = **Thorough Mode**
+9. 点击顶部左侧 **Import**
+10. 等待导入成功后关闭 Aras Package Import 工具
 
 ####
 
